@@ -258,6 +258,9 @@ A: Yes! Vercel (frontend) + Railway/Render (backend) + Pinecone (DB) = ~$0/month
 - Test with simple examples first
 - Check Pinecone console to verify data
 
+## Python Version Requirement
+This project requires Python 3.10, 3.11, or 3.12. It is not compatible with Python 3.13 due to upstream library limitations.
+
 ---
 
 **Built with** 🤍 for learning about modern AI/ML infrastructure.

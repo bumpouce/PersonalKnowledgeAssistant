@@ -133,115 +133,368 @@ TOP_K_RESULTS=5
 
 ---
 
-### STEP 3: Core Module - Embeddings (HuggingFace)
+## STEP 3: HuggingFace Embeddings Setup - Complete Guide
 
-#### `backend/core/embeddings.py`:
+### 3.1 Understanding HuggingFace for Embeddings
+
+HuggingFace is a community platform with **100% free models** for text embeddings. You don't need to create an account for most models, especially the ones we'll use.
+
+**Key Benefits:**
+- ✅ Completely FREE (no API keys needed for most models)
+- ✅ Download models once, use locally (no recurring charges)
+- ✅ Models cached after first download
+- ✅ Private (your data doesn't leave your computer)
+- ✅ Community-driven (thousands of models to choose from)
+- ✅ Open source (MIT, Apache 2.0 licenses)
+
+**How It Works:**
+1. You install `sentence-transformers` library (Python package)
+2. Library automatically downloads model from HuggingFace hub
+3. Model is cached on your machine (~100-500 MB depending on model)
+4. Models run locally on your CPU/GPU (completely private)
+5. No API calls needed (unlike OpenAI)
+
+### 3.2 Available Free Models for Learning
+
+| Model Name | Speed | Quality | Size | Best For | Free Tier |
+|------------|-------|---------|------|----------|-----------|
+| all-MiniLM-L6-v2 | ⚡⚡⚡ Fast | ⭐⭐⭐ | 22 MB | MVP, Testing, **RECOMMENDED** | ✅ Yes |
+| all-mpnet-base-v2 | ⚡⚡ Medium | ⭐⭐⭐⭐ | 109 MB | Production Quality | ✅ Yes |
+| bge-small-en-v1.5 | ⚡⚡⚡ Fast | ⭐⭐⭐⭐ | 33 MB | Good balance | ✅ Yes |
+| bge-base-en-v1.5 | ⚡⚡ Medium | ⭐⭐⭐⭐⭐ | 109 MB | High Quality | ✅ Yes |
+| bge-large-en-v1.5 | ⚡ Slow | ⭐⭐⭐⭐⭐ Premium | 335 MB | Best Quality | ✅ Yes |
+| MiniLM-L12-H384-uncased | ⚡⚡ Medium | ⭐⭐⭐⭐ | 33 MB | Domain Specific | ✅ Yes |
+
+**Recommendation for Learning:** Start with `all-MiniLM-L6-v2` (fastest, good enough), then try `all-mpnet-base-v2` (better quality) after you understand the system.
+
+### 3.3 Installation & First Run
+
+**Step 1: Install sentence-transformers**
+```powershell
+# Make sure venv is activated
+.\venv\Scripts\Activate.ps1
+
+# Install the library
+pip install sentence-transformers
+
+# Also install torch (used by sentence-transformers)
+pip install torch
+```
+
+**Step 2: Download & cache model (first time only)**
 ```python
 from sentence_transformers import SentenceTransformer
+
+# First run: Downloads model (~50-100 MB)
+# Subsequent runs: Uses cached model (instant)
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+print("✓ Model downloaded and cached!")
+print(f"Embedding dimension: {model.get_sentence_embedding_dimension()}")  # 384
+```
+
+**Where models are cached:**
+```
+Windows: C:\Users\<username>\.cache\huggingface\hub\
+Mac: ~/.cache/huggingface/hub/
+Linux: ~/.cache/huggingface/hub/
+```
+
+You can safely delete this cache if you need disk space - models will re-download automatically.
+
+**Step 3: Test that it works**
+```python
+from sentence_transformers import SentenceTransformer
+import time
+
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+# Time a single embedding
+text = "Machine learning is a subset of artificial intelligence"
+start = time.time()
+embedding = model.encode(text)
+elapsed = time.time() - start
+
+print(f"Text: {text}")
+print(f"Embedding shape: {embedding.shape}")  # (384,)
+print(f"Time taken: {elapsed:.3f} seconds")
+print(f"First 5 values: {embedding[:5]}")
+```
+
+Expected output:
+```
+Text: Machine learning is a subset of artificial intelligence
+Embedding shape: (384,)
+Time taken: 0.015 seconds
+First 5 values: [-0.123  0.456 -0.789  0.234 -0.567]
+```
+
+### 3.4 How to Use HuggingFace Models in Your Code
+
+**Single Text Embedding:**
+```python
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+# Embed a single text
+text = "Tell me about machine learning"
+embedding = model.encode(text)
+
+print(f"Embedding: {embedding}")  # Array of 384 floats
+print(f"Type: {type(embedding)}")  # numpy.ndarray
+```
+
+**Batch Embeddings (MUCH faster for multiple texts):**
+```python
+# ❌ SLOW: Loop approach
+embeddings = []
+for text in documents:
+    embedding = model.encode(text)
+    embeddings.append(embedding)
+# Time: ~2 seconds for 100 documents
+
+# ✅ FAST: Batch approach
+embeddings = model.encode(documents, batch_size=32)
+# Time: ~0.2 seconds for 100 documents (10x faster!)
+```
+
+**Semantic Similarity:**
+```python
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+text1 = "The cat is sleeping"
+text2 = "A cat is napping"
+text3 = "The car is fast"
+
+# Get embeddings
+emb1 = model.encode(text1)
+emb2 = model.encode(text2)
+emb3 = model.encode(text3)
+
+# Calculate similarity
+similarity_1_2 = cosine_similarity([emb1], [emb2])[0, 0]
+similarity_1_3 = cosine_similarity([emb1], [emb3])[0, 0]
+
+print(f"Similarity (cat/nap): {similarity_1_2:.3f}")  # ~0.95 (very similar!)
+print(f"Similarity (cat/car): {similarity_1_3:.3f}")  # ~0.15 (different)
+```
+
+### 3.5 Switching Between Models
+
+One of the best things about HuggingFace is experimenting with different models!
+
+```python
+from sentence_transformers import SentenceTransformer
+import time
+
+# Test different models on same text
+models = [
+    'sentence-transformers/all-MiniLM-L6-v2',
+    'sentence-transformers/all-mpnet-base-v2',
+    'BAAI/bge-small-en-v1.5',
+]
+
+test_text = "Artificial intelligence and machine learning"
+
+for model_name in models:
+    print(f"\n{model_name}")
+    print("-" * 50)
+    
+    # Load model
+    start = time.time()
+    model = SentenceTransformer(model_name)
+    load_time = time.time() - start
+    
+    # Get embedding
+    start = time.time()
+    embedding = model.encode(test_text)
+    embed_time = time.time() - start
+    
+    # Show stats
+    print(f"Dimension: {len(embedding)}")
+    print(f"Load time: {load_time:.2f}s")
+    print(f"Embed time: {embed_time:.3f}s")
+    print(f"First 3 values: {embedding[:3]}")
+```
+
+### 3.6 Cost Analysis: HuggingFace vs Alternatives
+
+**HuggingFace (Local Models):**
+- Setup: FREE ✅
+- Per embedding: FREE ✅
+- Bandwidth: Download once (~100-500 MB)
+- Total cost: **$0 forever** 🎉
+
+**OpenAI Embeddings API:**
+- Setup: FREE (create account)
+- Per 1M tokens: $0.02
+- For 100k documents: ~$2 per ingestion
+- Monthly: **$5-50 depending on usage**
+
+**Cohere Embeddings API:**
+- Free tier: First 100k tokens/month
+- After: $0.0001 per 1000 tokens
+- Monthly: **$0-10 depending on usage**
+
+**AWS SageMaker:**
+- No free tier
+- Per hour usage-based
+- Setup: Complex
+- Monthly: **$50-200+**
+
+**Winner for Learning:** HuggingFace (completely free!)
+
+### 3.7 Advanced HuggingFace Features (Learning Later)
+
+#### Fine-tuning a model for your domain
+```python
+# Advanced: Train a model on your specific documents
+# Makes embeddings more accurate for your use case
+# Usually not needed for MVP
+from sentence_transformers import SentenceTransformer, InputExample, losses
+from torch.utils.data import DataLoader
+
+# This is for later - skip for now!
+```
+
+#### Using a different model provider
+```python
+# All work the same way:
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')  # HuggingFace
+model = SentenceTransformer('distiluse-base-multilingual-cased-v2')   # Multilingual
+model = SentenceTransformer('all-MiniLM-L6-v2')                       # HuggingFace shorthand
+```
+
+### 3.8 Troubleshooting HuggingFace
+
+**Problem: "Model not found"**
+```python
+# Wrong: Model doesn't exist
+model = SentenceTransformer('sentence-transformers/my-fake-model')
+
+# Correct: Check HuggingFace hub for model names
+# Visit: https://huggingface.co/models?library=sentence-transformers
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+```
+
+**Problem: "Out of memory"**
+```python
+# Solution: Use smaller batch size
+embeddings = model.encode(large_document_list, batch_size=8)  # Smaller batch
+
+# Or use a smaller model
+model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')  # Smaller
+```
+
+**Problem: Slow embeddings**
+```python
+# Solution: Use batch processing (not single embeddings)
+# Or use a faster model (MiniLM instead of mpnet)
+# Or add GPU (if available)
+```
+
+**Problem: "No module named torch"**
+```powershell
+pip install torch  # Install PyTorch separately
+```
+
+### 3.9 Creating Your Embedding Wrapper (For Your App)
+
+```python
+# backend/core/embeddings.py
+from sentence_transformers import SentenceTransformer
 from typing import List
-import numpy as np
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class EmbeddingModel:
-    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = None):
+        # Allow override via environment variable
+        model_name = model_name or os.getenv(
+            'EMBEDDING_MODEL_NAME',
+            'sentence-transformers/all-MiniLM-L6-v2'
+        )
+        
+        print(f"Loading embedding model: {model_name}")
         self.model = SentenceTransformer(model_name)
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
+        print(f"✓ Model loaded. Dimension: {self.embedding_dim}")
     
     def embed_text(self, text: str) -> List[float]:
-        """Embed a single text."""
+        """Embed a single text string."""
+        if not text or not isinstance(text, str):
+            raise ValueError("Input must be a non-empty string")
+        
         embedding = self.model.encode(text, convert_to_tensor=False)
         return embedding.tolist()
     
     def embed_batch(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
-        """Embed multiple texts efficiently."""
-        embeddings = self.model.encode(texts, batch_size=batch_size, convert_to_tensor=False)
+        """Embed multiple texts efficiently using batching."""
+        if not texts:
+            return []
+        
+        if not all(isinstance(t, str) for t in texts):
+            raise ValueError("All inputs must be strings")
+        
+        # Use batch processing for speed
+        embeddings = self.model.encode(
+            texts,
+            batch_size=batch_size,
+            convert_to_tensor=False,
+            show_progress_bar=True  # Nice progress indicator
+        )
+        
         return [emb.tolist() for emb in embeddings]
     
     def get_embedding_dimension(self) -> int:
+        """Get the embedding dimension for this model."""
         return self.embedding_dim
-```
+    
+    def similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
+        """Calculate cosine similarity between two embeddings."""
+        import numpy as np
+        from sklearn.metrics.pairwise import cosine_similarity
+        
+        sim = cosine_similarity([embedding1], [embedding2])[0, 0]
+        return float(sim)
 
-**Learning Points:**
-- `sentence-transformers` automatically downloads and caches models
-- Batch processing is much faster than individual embedding
-- Each model has fixed output dimension
-- `convert_to_tensor=False` keeps in numpy for easier use
+
+# Usage in your app
+if __name__ == "__main__":
+    # Initialize
+    embedder = EmbeddingModel()
+    
+    # Embed single text
+    emb1 = embedder.embed_text("Hello world")
+    print(f"Embedding 1 dimension: {len(emb1)}")
+    
+    # Embed batch
+    texts = [
+        "Machine learning is great",
+        "Python is a programming language",
+        "Embeddings capture meaning"
+    ]
+    embeddings = embedder.embed_batch(texts)
+    print(f"Created {len(embeddings)} embeddings")
+    
+    # Check similarity
+    sim = embedder.similarity(embeddings[0], embeddings[1])
+    print(f"Similarity: {sim:.2f}")
+```
 
 ---
 
-### STEP 4: Core Module - Pinecone Client
+### STEP 4: Core Module - Embeddings (HuggingFace Integration)
 
-#### `backend/core/pinecone_client.py`:
+#### `backend/core/embeddings.py`:
 ```python
-from pinecone import Pinecone, ServerlessSpec
-from typing import List, Dict, Optional
-import json
-from datetime import datetime
-
-class PineconeDB:
-    def __init__(self, api_key: str, index_name: str, embedding_dim: int):
-        self.pc = Pinecone(api_key=api_key)
-        self.index_name = index_name
-        self.embedding_dim = embedding_dim
-        self.index = None
-        self._ensure_index_exists()
-    
-    def _ensure_index_exists(self):
-        """Create index if it doesn't exist."""
-        if self.index_name not in self.pc.list_indexes().names():
-            self.pc.create_index(
-                name=self.index_name,
-                dimension=self.embedding_dim,
-                metric="cosine",
-                spec=ServerlessSpec(cloud="aws", region="us-west-2")
-            )
-        self.index = self.pc.Index(self.index_name)
-    
-    def upsert_vectors(self, vectors: List[tuple]):
-        """
-        Upsert vectors to Pinecone.
-        vectors: List of (id, embedding, metadata) tuples
-        """
-        vectors_to_upsert = [
-            (id, embedding, metadata) for id, embedding, metadata in vectors
-        ]
-        self.index.upsert(vectors=vectors_to_upsert)
-    
-    def search(self, embedding: List[float], top_k: int = 5, 
-               filter: Optional[Dict] = None) -> List[Dict]:
-        """
-        Search for similar vectors.
-        Returns: List of matches with scores and metadata
-        """
-        results = self.index.query(
-            vector=embedding,
-            top_k=top_k,
-            include_metadata=True,
-            filter=filter
-        )
-        
-        return [
-            {
-                "id": match.id,
-                "score": match.score,
-                "metadata": match.metadata
-            }
-            for match in results.matches
-        ]
-    
-    def delete(self, ids: List[str]):
-        """Delete vectors by ID."""
-        self.index.delete(ids=ids)
-    
-    def get_stats(self) -> Dict:
-        """Get index statistics."""
-        return self.index.describe_index_stats()
 ```
-
-**Learning Points:**
-- Pinecone indexes are created once, then managed
-- "cosine" metric is standard for text (0-1 similarity)
-- Metadata is stored with vectors for retrieval
-- Filtering can reduce search space before vector search
 
 ---
 
