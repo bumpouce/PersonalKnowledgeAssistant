@@ -10,7 +10,7 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModel.from_pretrained(MODEL_NAME)
 
 # The query to search for
-query = "Where can I find a quiet place to read?"
+query = "What color ball did the puppy chase?"
 
 documents = [
     "The cat slept on the warm windowsill.",
@@ -25,12 +25,23 @@ documents = [
     "Rain tapped softly on the rooftop."
 ]
 
+# def get_embedding(text):
+#     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+#     with torch.no_grad():
+#         outputs = model(**inputs)
+#         # Use the [CLS] token representation as embedding
+#         return outputs.last_hidden_state[:, 0, :].squeeze().cpu().numpy()
 def get_embedding(text):
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+
     with torch.no_grad():
         outputs = model(**inputs)
-        # Use the [CLS] token representation as embedding
-        return outputs.last_hidden_state[:, 0, :].squeeze().cpu().numpy()
+        embedding = outputs.last_hidden_state[:, 0, :].squeeze().cpu().numpy()
+
+    # L2 normalize
+    embedding = embedding / np.linalg.norm(embedding)
+
+    return embedding
 
 # Get embeddings for query and documents
 query_embedding = get_embedding(query)
