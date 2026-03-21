@@ -5,3 +5,4 @@ pinecone==6.0.0
 python-dotenv==1.0.0
 # sentence-transformers removed; use transformers for embedding models
 # torch is required for most models; install manually if needed for GPU/CPU compatibility
+requests>=2.32.5
